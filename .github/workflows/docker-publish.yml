@@ -22,10 +22,10 @@ jobs:
       matrix:
         include:
           - name: graalvm-jdk21
-            context: uwuyolks/graalvm-jdk21
+            context: graalvm-jdk21
             tag: graal21
           - name: graalvm-jdk25
-            context: uwuyolks/graalvm-jdk25
+            context: graalvm-jdk25
             tag: graal25
     permissions:
       contents: read
@@ -58,8 +58,8 @@ jobs:
       - name: Build and push ${{ matrix.name }}
         uses: docker/build-push-action@v5
         with:
-          context: ./${{ matrix.context }}
-          file: ./${{ matrix.context }}/Dockerfile
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
