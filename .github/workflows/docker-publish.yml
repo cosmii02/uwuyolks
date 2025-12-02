@@ -18,6 +18,15 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: graalvm-jdk21
+            context: uwuyolks/graalvm-jdk21
+            tag: graal21
+          - name: graalvm-jdk25
+            context: uwuyolks/graalvm-jdk25
+            tag: graal25
     permissions:
       contents: read
       packages: write
@@ -44,11 +53,13 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest
-      - name: Build and push Docker image
+            type=raw,value=${{ matrix.tag }}
+
+      - name: Build and push ${{ matrix.name }}
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
@@ -56,14 +67,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  make-package-public:
+    needs: build-and-push
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
       - name: Make package public
-        if: github.event_name != 'pull_request'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OWNER: ${{ github.repository_owner }}
           PACKAGE_NAME: ${{ github.event.repository.name }}
         run: |
-          # Update package visibility to public
           curl -X PATCH \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${GITHUB_TOKEN}" \

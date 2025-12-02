@@ -20,7 +20,10 @@
 # SOFTWARE.
 #
 
-FROM        --platform=$TARGETOS/$TARGETARCH ghcr.io/graalvm/jdk-community:21
+FROM        --platform=$TARGETOS/$TARGETARCH ghcr.io/graalvm/jdk-community:25
+
+ARG         QEMU_CPU=Skylake-Server
+ENV         QEMU_CPU=${QEMU_CPU}
 
 LABEL       author="Matthew Penner" maintainer="matthew@pterodactyl.io"
 

@@ -1,3 +1,5 @@
+#!/bin/bash
+
 #
 # Copyright (c) 2021 Matthew Penner
 #
@@ -20,21 +22,28 @@
 # SOFTWARE.
 #
 
-FROM        --platform=$TARGETOS/$TARGETARCH ghcr.io/graalvm/jdk-community:21
+# Default the TZ environment variable to UTC.
+TZ=${TZ:-UTC}
+export TZ
 
-LABEL       author="Matthew Penner" maintainer="matthew@pterodactyl.io"
+# Set environment variable that holds the Internal Docker IP
+INTERNAL_IP=$(ip route get 1 | awk '{print $(NF-2);exit}')
+export INTERNAL_IP
 
-LABEL       org.opencontainers.image.source="https://github.com/pterodactyl/yolks"
-LABEL       org.opencontainers.image.licenses=MIT
+# Switch to the container's working directory
+cd /home/container || exit 1
 
-RUN 				microdnf update -y \
-					&& microdnf install -y lsof curl ca-certificates openssl git tar sqlite fontconfig freetype tzdata iproute libstdc++ \
-					&& microdnf clean all \
-					&& useradd -d /home/container -m container
+# Print Java version
+printf "\033[1m\033[33mcontainer@pterodactyl~ \033[0mjava -version\n"
+java -version
 
-USER        container
-ENV         USER=container HOME=/home/container
-WORKDIR     /home/container
+# Convert all of the "{{VARIABLE}}" parts of the command into the expected shell
+# variable format of "${VARIABLE}" before evaluating the string and automatically
+# replacing the values.
+PARSED=$(echo "${STARTUP}" | sed -e 's/{{/${/g' -e 's/}}/}/g' | eval echo "$(cat -)")
 
-COPY        ./entrypoint.sh /entrypoint.sh
-CMD         [ "/bin/bash", "/entrypoint.sh" ]
+# Display the command we're running in the output, and then execute it with the env
+# from the container itself.
+printf "\033[1m\033[33mcontainer@pterodactyl~ \033[0m%s\n" "$PARSED"
+# shellcheck disable=SC2086
+exec env ${PARSED}
